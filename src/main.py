@@ -1,14 +1,21 @@
 """FastAPI application factory and phase-one error handling."""
 
+import logging
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src import models  # noqa: F401
 from src.api import ai, attributes, products, sync
 from src.database import Base, engine
 from src.services.pim_service import ConflictError, NotFoundError, PimError
+
+logger = logging.getLogger("pim.api")
 
 
 def create_app(create_tables: bool = True) -> FastAPI:
@@ -21,6 +28,19 @@ def create_app(create_tables: bool = True) -> FastAPI:
     app.include_router(ai.router)
     app.include_router(sync.router)
 
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """Log request method, path, status, and elapsed milliseconds."""
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("request failed method=%s path=%s status=500", request.method, request.url.path)
+            raise
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        logger.info("request method=%s path=%s status=%s elapsed_ms=%.1f", request.method, request.url.path, response.status_code, elapsed_ms)
+        return response
+
     @app.exception_handler(PimError)
     async def pim_error_handler(request: Request, exc: PimError) -> JSONResponse:
         del request
@@ -31,6 +51,27 @@ def create_app(create_tables: bool = True) -> FastAPI:
     async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         del request
         return JSONResponse(status_code=422, content=jsonable_encoder({"error": {"code": "validation_error", "message": "Request validation failed", "details": exc.errors()}}))
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        del request
+        code = "not_found" if exc.status_code == 404 else "http_error"
+        return JSONResponse(status_code=exc.status_code, content=jsonable_encoder({"error": {"code": code, "message": str(exc.detail), "details": None}}), headers=exc.headers)
+
+    @app.exception_handler(Exception)
+    async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error(
+            "unhandled application error path=%s", request.url.path,
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+        return JSONResponse(status_code=500, content={"error": {"code": "internal_error", "message": "An unexpected error occurred", "details": None}})
+
+    @app.get("/health", tags=["system"])
+    def health() -> dict[str, str]:
+        """Report service health after a simple database connectivity check."""
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ok"}
 
     return app
 
