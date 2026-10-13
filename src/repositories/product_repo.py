@@ -1,6 +1,7 @@
 """Product repository."""
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from src.models.product import Product
 from src.repositories.base import BaseRepository
@@ -9,7 +10,7 @@ from src.repositories.base import BaseRepository
 class ProductRepository(BaseRepository[Product]):
     """Product-specific queries."""
 
-    def __init__(self, session):
+    def __init__(self, session: Session) -> None:
         super().__init__(session, Product)
 
     def get_by_sku(self, sku: str) -> Product | None:

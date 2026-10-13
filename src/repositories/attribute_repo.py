@@ -1,6 +1,7 @@
 """Attribute definition repository."""
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from src.models.attribute import AttributeDefinition
 from src.repositories.base import BaseRepository
@@ -9,7 +10,7 @@ from src.repositories.base import BaseRepository
 class AttributeRepository(BaseRepository[AttributeDefinition]):
     """Attribute-specific queries."""
 
-    def __init__(self, session):
+    def __init__(self, session: Session) -> None:
         super().__init__(session, AttributeDefinition)
 
     def get_by_name(self, name: str) -> AttributeDefinition | None:

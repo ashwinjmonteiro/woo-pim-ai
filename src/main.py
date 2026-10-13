@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src import models  # noqa: F401
-from src.api import attributes, products
+from src.api import ai, attributes, products
 from src.database import Base, engine
 from src.services.pim_service import ConflictError, NotFoundError, PimError
 
@@ -18,6 +18,7 @@ def create_app(create_tables: bool = True) -> FastAPI:
     app = FastAPI(title="Woo PIM AI", version="0.1.0")
     app.include_router(products.router)
     app.include_router(attributes.router)
+    app.include_router(ai.router)
 
     @app.exception_handler(PimError)
     async def pim_error_handler(request: Request, exc: PimError) -> JSONResponse:

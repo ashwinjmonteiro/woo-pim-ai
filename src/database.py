@@ -2,7 +2,7 @@
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from src.config import get_settings
@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
     """Declarative base for application models."""
 
 
-def _make_engine(url: str):
+def _make_engine(url: str) -> Engine:
     options = {"check_same_thread": False} if url.startswith("sqlite") else {}
     return create_engine(url, connect_args=options)
 

@@ -46,3 +46,12 @@ def test_unknown_attribute_rejected_and_enum_definition_requires_values(client):
     assert bad_definition.status_code == 422
     bad_product = client.post("/products", json=product_payload(attributes={"unknown": "x"}))
     assert bad_product.status_code == 422
+
+
+def test_ai_enrich_mock_endpoint_and_optional_persistence(client):
+    response = client.post("/ai/enrich?persist=true", json={"title": "Wireless Ergonomic Mouse"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "complete"
+    assert body["persisted"]["status"] == "enriched"
+    assert body["persisted"]["sku"].startswith("AI-")
