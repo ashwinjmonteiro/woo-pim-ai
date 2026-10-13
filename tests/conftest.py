@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from src import models  # noqa: F401
+from src.config import Settings, get_settings
 from src.database import Base, get_db
 from src.main import create_app
 
@@ -35,5 +36,11 @@ def client(session_factory):
             session.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        woo_base_url="https://woo.test",
+        woo_consumer_key="test-key",
+        woo_consumer_secret="test-secret",
+        woo_webhook_secret="test-webhook-secret",
+    )
     with TestClient(app) as test_client:
         yield test_client

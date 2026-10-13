@@ -65,6 +65,28 @@ class PimService:
             raise NotFoundError(f"Attribute {attribute_id} was not found")
         return attribute
 
+    def update_attribute(self, attribute_id: int, changes: dict[str, Any]) -> AttributeDefinition:
+        """Update a definition while preserving its type and uniqueness rules."""
+        attribute = self.get_attribute(attribute_id)
+        merged = {key: getattr(attribute, key) for key in ("name", "type", "required", "allowed_values", "category_scope")}
+        merged.update(changes)
+        if merged["type"] == "enum" and not merged["allowed_values"]:
+            raise AttributeValidationError("Enum attributes require allowed_values")
+        if merged["type"] != "enum" and merged["allowed_values"]:
+            raise AttributeValidationError("allowed_values is only valid for enum attributes")
+        duplicate = self.attributes.get_by_name(merged["name"])
+        if duplicate is not None and duplicate.id != attribute.id:
+            raise ConflictError(f"Attribute '{merged['name']}' already exists")
+        for key, value in changes.items():
+            setattr(attribute, key, value)
+        try:
+            self.session.commit()
+            self.session.refresh(attribute)
+        except IntegrityError as exc:
+            self.session.rollback()
+            raise ConflictError("Attribute conflicts with an existing definition") from exc
+        return attribute
+
     def delete_attribute(self, attribute_id: int) -> None:
         """Delete an attribute definition."""
         self.attributes.delete(self.get_attribute(attribute_id))

@@ -38,6 +38,7 @@ def test_attribute_crud_and_product_attribute_validation(client):
     assert valid.status_code == 201
     assert client.get("/attributes").json()[0]["name"] == "color"
     assert client.get(f"/attributes/{definition.json()['id']}").status_code == 200
+    assert client.patch(f"/attributes/{definition.json()['id']}", json={"category_scope": "Mice v2"}).json()["category_scope"] == "Mice v2"
     assert client.delete(f"/attributes/{definition.json()['id']}").status_code == 204
 
 

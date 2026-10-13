@@ -71,6 +71,16 @@ class AttributeCreate(BaseModel):
         return self
 
 
+class AttributeUpdate(BaseModel):
+    """Partial attribute definition update payload."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    type: Literal["string", "number", "boolean", "enum"] | None = None
+    required: bool | None = None
+    allowed_values: list[str] | None = None
+    category_scope: str | None = Field(default=None, max_length=256)
+
+
 class AttributeRead(BaseModel):
     """Attribute definition response schema."""
 

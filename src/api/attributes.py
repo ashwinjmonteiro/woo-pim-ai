@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, Response, status
 
 from src.api.dependencies import get_pim_service
-from src.models.schemas import AttributeCreate, AttributeRead
+from src.models.schemas import AttributeCreate, AttributeRead, AttributeUpdate
 from src.services.pim_service import PimService
 
 router = APIRouter(prefix="/attributes", tags=["attributes"])
@@ -28,6 +28,13 @@ def list_attributes(service: PimService = Depends(get_pim_service)) -> list[Attr
 def get_attribute(attribute_id: int, service: PimService = Depends(get_pim_service)) -> AttributeRead:
     """Return an attribute definition by identifier."""
     return service.get_attribute(attribute_id)
+
+
+@router.patch("/{attribute_id}", response_model=AttributeRead)
+def update_attribute(attribute_id: int, payload: AttributeUpdate, service: PimService = Depends(get_pim_service)) -> AttributeRead:
+    """Partially update an attribute definition."""
+    changes = payload.model_dump(exclude_unset=True)
+    return service.update_attribute(attribute_id, changes)
 
 
 @router.delete("/{attribute_id}", status_code=status.HTTP_204_NO_CONTENT)

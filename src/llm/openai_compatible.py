@@ -1,5 +1,7 @@
 """OpenAI SDK client configured for compatible free/local providers."""
 
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 from openai import APIStatusError, APITimeoutError, OpenAI, OpenAIError, RateLimitError
@@ -34,7 +36,11 @@ def _wait_for_retry(retry_state: Any) -> float:
         try:
             return max(0.0, float(retry_after))
         except ValueError:
-            pass
+            try:
+                retry_time = parsedate_to_datetime(retry_after)
+                return max(0.0, (retry_time - datetime.now(UTC)).total_seconds())
+            except (TypeError, ValueError):
+                pass
     return _fallback_wait(retry_state)
 
 
