@@ -2,13 +2,15 @@
 
 import logging
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.staticfiles import StaticFiles
 
 from src import models  # noqa: F401
 from src.api import ai, attributes, products, sync
@@ -16,6 +18,7 @@ from src.database import Base, engine
 from src.services.pim_service import ConflictError, NotFoundError, PimError
 
 logger = logging.getLogger("pim.api")
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app(create_tables: bool = True) -> FastAPI:
@@ -27,6 +30,12 @@ def create_app(create_tables: bool = True) -> FastAPI:
     app.include_router(attributes.router)
     app.include_router(ai.router)
     app.include_router(sync.router)
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def home() -> FileResponse:
+        """Serve the browser-based catalog dashboard."""
+        return FileResponse(STATIC_DIR / "index.html")
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):

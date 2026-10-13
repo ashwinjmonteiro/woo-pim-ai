@@ -15,7 +15,8 @@ A small Product Information Management service for maintaining a product catalog
 
 ```mermaid
 flowchart LR
-    Client[REST client] --> API[FastAPI routers]
+    Browser[Browser UI at /] --> API[FastAPI routers]
+    Client[REST client] --> API
     API --> Service[PIM and sync services]
     Service --> Repo[Repositories]
     Repo --> DB[(SQLite)]
@@ -87,6 +88,16 @@ Open <http://127.0.0.1:8000/docs> for Swagger UI. Run all offline tests and lint
 pytest -q
 ruff check src tests
 ```
+
+## Web UI
+
+Start the server with `uvicorn src.main:app --reload`, then open <http://127.0.0.1:8000/>. The browser interface is plain HTML, CSS, and JavaScript; it calls the same REST API as `/docs` and requires no frontend build or separate development server.
+
+- **Products:** browse and refresh the catalog, add a basic draft, push individual products to WooCommerce, and delete PIM products. The table includes the most recent sync status.
+- **AI Enrich:** enter a title, optionally choose “Save product to catalog,” and run the enrichment agent. Review the description, tags, extracted attributes, category, completion badge, and step-by-step tool trace.
+- **Sync:** push all catalog products, pull from WooCommerce, and inspect recent records with direction, status, retry attempts, errors, and time.
+
+The UI displays API error messages in a toast and does not expose server stack traces. WooCommerce actions require credentials in `.env`; AI enrichment works immediately with the default mock provider.
 
 `make install`, `make run`, `make test`, and `make lint` are also available where Make is installed.
 

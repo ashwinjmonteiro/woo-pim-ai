@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Woo PIM AI — Product workspace</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Woo PIM AI home">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span><strong>Woo PIM AI</strong><small>Product workspace</small></span>
+      </a>
+      <div class="topbar-meta"><span class="live-dot"></span><span>Local workspace</span><a href="/docs" target="_blank" rel="noreferrer">API docs <span aria-hidden="true">↗</span></a></div>
+    </header>
+
+    <main class="main-content">
+      <section class="page-heading">
+        <div><p class="eyebrow">CATALOG OPERATIONS</p><h1>Your product workspace</h1><p class="subheading">Manage product data, enrich drafts, and keep WooCommerce in sync.</p></div>
+        <div class="heading-mark" aria-hidden="true">✳</div>
+      </section>
+
+      <nav class="tabs" role="tablist" aria-label="Workspace sections">
+        <button class="tab active" id="tab-products" role="tab" aria-selected="true" aria-controls="panel-products" data-tab="products"><span class="tab-icon">▦</span>Products</button>
+        <button class="tab" id="tab-ai" role="tab" aria-selected="false" aria-controls="panel-ai" data-tab="ai"><span class="tab-icon">✧</span>AI Enrich</button>
+        <button class="tab" id="tab-sync" role="tab" aria-selected="false" aria-controls="panel-sync" data-tab="sync"><span class="tab-icon">↔</span>Sync</button>
+      </nav>
+
+      <section class="tab-panel active" id="panel-products" role="tabpanel" aria-labelledby="tab-products">
+        <div class="section-heading"><div><h2>Products</h2><p>Your catalog in one place.</p></div><button class="button button-secondary" id="refresh-products"><span aria-hidden="true">↻</span> Refresh</button></div>
+        <form id="add-product-form" class="card add-form">
+          <div class="card-heading"><div><span class="section-kicker">CATALOG</span><h3>Add a product</h3></div><span class="form-note">A quick draft to get started</span></div>
+          <div class="form-grid">
+            <label>Product title<input name="title" placeholder="e.g. Wireless Ergonomic Mouse" required maxlength="512"></label>
+            <label>SKU<input name="sku" placeholder="e.g. MOUSE-001" required maxlength="128"></label>
+            <label>Price <span class="muted">(optional)</span><div class="price-input"><span>$</span><input name="price" type="number" min="0" step="0.01" placeholder="0.00"></div></label>
+            <button class="button button-primary form-submit" type="submit">Add product <span aria-hidden="true">＋</span></button>
+          </div>
+        </form>
+        <div class="card table-card">
+          <div class="card-heading table-heading"><div><span class="section-kicker">YOUR CATALOG</span><h3>All products <span class="count-pill" id="product-count">0</span></h3></div><span class="muted" id="product-summary">Loading products…</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Status</th><th>Woo ID</th><th>Last sync</th><th class="actions-head">Actions</th></tr></thead><tbody id="products-body"><tr><td colspan="7" class="empty-cell">Loading your catalog…</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+        <div class="section-heading"><div><h2>AI Enrich</h2><p>Turn a product idea into a richer catalog listing.</p></div><span class="provider-pill"><span class="sparkle">✧</span> Agent workflow</span></div>
+        <form id="enrich-form" class="card enrich-form">
+          <div class="card-heading"><div><span class="section-kicker">PRODUCT INPUT</span><h3>What are you adding?</h3></div></div>
+          <label for="enrich-title">Product title</label>
+          <div class="enrich-controls"><input id="enrich-title" name="title" placeholder="e.g. Wireless Ergonomic Mouse" required maxlength="512"><button class="button button-primary" id="enrich-button" type="submit"><span class="button-label">Enrich product</span><span class="spinner" aria-hidden="true"></span><span aria-hidden="true">✧</span></button></div>
+          <label class="checkbox-row"><input id="persist-enrichment" type="checkbox"><span class="checkmark"></span><span><strong>Save product to catalog</strong><small>Generate an SKU and save this enrichment as a draft.</small></span></label>
+        </form>
+        <div id="enrich-result" class="result-stack" hidden>
+          <article class="card result-card">
+            <div class="result-header"><div><span class="section-kicker">ENRICHED PRODUCT</span><h3 id="result-title">Product result</h3></div><span id="result-status" class="badge badge-success">Complete</span></div>
+            <div class="result-grid">
+              <div class="result-main"><h4>Description</h4><p id="result-description" class="description-copy"></p><h4>Tags</h4><div id="result-tags" class="chips"></div></div>
+              <div class="result-side"><div class="category-box"><span class="section-kicker">SUGGESTED CATEGORY</span><strong id="result-category">—</strong></div><div class="attributes-box"><h4>Attributes</h4><div class="table-wrap"><table class="compact-table"><tbody id="result-attributes"></tbody></table></div></div></div>
+            </div>
+            <p id="persisted-note" class="persisted-note" hidden></p>
+          </article>
+          <article class="card trace-card"><div class="card-heading"><div><span class="section-kicker">UNDER THE HOOD</span><h3>Agent trace</h3></div><span class="muted" id="trace-summary"></span></div><ol id="trace-list" class="trace-list"></ol></article>
+        </div>
+        <div id="enrich-empty" class="empty-state"><span class="empty-icon">✧</span><strong>Your enriched result will appear here</strong><span>Add a product title above to start the agent workflow.</span></div>
+      </section>
+
+      <section class="tab-panel" id="panel-sync" role="tabpanel" aria-labelledby="tab-sync" hidden>
+        <div class="section-heading"><div><h2>Sync</h2><p>Move catalog updates between your PIM and WooCommerce.</p></div></div>
+        <div class="sync-actions">
+          <article class="card sync-action-card"><span class="action-icon push-icon">↑</span><div><h3>Push products</h3><p>Send products from your PIM catalog to WooCommerce.</p></div><button class="button button-primary" id="push-all">Push all <span aria-hidden="true">→</span></button></article>
+          <article class="card sync-action-card"><span class="action-icon pull-icon">↓</span><div><h3>Pull products</h3><p>Import new and updated products from WooCommerce.</p></div><button class="button button-secondary" id="pull-woo">Pull from WooCommerce <span aria-hidden="true">←</span></button></article>
+        </div>
+        <div class="card table-card sync-history-card">
+          <div class="card-heading table-heading"><div><span class="section-kicker">ACTIVITY</span><h3>Recent syncs</h3></div><button class="button button-quiet" id="refresh-sync">Refresh <span aria-hidden="true">↻</span></button></div>
+          <div class="table-wrap"><table><thead><tr><th>Product</th><th>Direction</th><th>Status</th><th>Attempts</th><th>Error</th><th>Time</th></tr></thead><tbody id="sync-body"><tr><td colspan="6" class="empty-cell">Loading sync history…</td></tr></tbody></table></div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer"><span>Woo PIM AI</span><span>Product data, in good shape.</span></footer>
+  </div>
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
