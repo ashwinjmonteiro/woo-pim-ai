@@ -15,6 +15,7 @@ from src.models.product import Product
 from src.models.sync import SyncRecord, sync_now
 from src.repositories.product_repo import ProductRepository
 from src.repositories.sync_repo import SyncRepository
+from src.services.pim_service import PimError
 from src.services.woocommerce_client import WooCommerceClient, WooRequestError
 
 
@@ -31,6 +32,12 @@ def _as_utc(value: datetime) -> datetime:
 
 class WebhookSignatureError(Exception):
     """WooCommerce webhook signature was missing or invalid."""
+
+
+class WooCommerceNotConfigured(PimError):
+    """WooCommerce credentials or store URL have not been configured."""
+
+    code = "woocommerce_not_configured"
 
 
 class WooCommerceSyncService:
@@ -64,7 +71,7 @@ class WooCommerceSyncService:
             return record
         except Exception as error:  # noqa: BLE001 - a sync failure must be persisted as an audit record
             attempts = error.attempts if isinstance(error, WooRequestError) else max(1, self.client.last_attempts)
-            return self._record(product.id, "push", "failed", attempts, str(error))
+            return self._record(product.id, "push", "failed", attempts, self._error_message(error))
 
     def push_all(self) -> list[SyncRecord]:
         """Push every product currently managed by the PIM."""
@@ -79,7 +86,7 @@ class WooCommerceSyncService:
                 batch = self.client.request("GET", "/products", params={"page": page, "per_page": per_page})
             except Exception as error:  # noqa: BLE001 - a sync failure must be persisted as an audit record
                 attempts = error.attempts if isinstance(error, WooRequestError) else max(1, self.client.last_attempts)
-                records.append(self._record(None, "pull", "failed", attempts, str(error)))
+                records.append(self._record(None, "pull", "failed", attempts, self._error_message(error)))
                 break
             for item in batch:
                 try:
@@ -195,3 +202,9 @@ class WooCommerceSyncService:
         self.session.commit()
         self.session.refresh(record)
         return record
+
+    def _error_message(self, error: Exception) -> str:
+        """Replace low-level connection details with a readable store error."""
+        if isinstance(error, WooRequestError) and error.status_code is None:
+            return f"Could not connect to WooCommerce at {self.client.base_url}"
+        return str(error)

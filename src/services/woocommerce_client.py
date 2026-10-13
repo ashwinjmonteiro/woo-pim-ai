@@ -12,6 +12,7 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
+from tenacity.nap import sleep as tenacity_sleep
 
 
 class WooRequestError(Exception):
@@ -58,13 +59,14 @@ class WooCommerceClient:
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] | None = None,
     ) -> None:
+        self.base_url = base_url.rstrip("/")
         self.client = httpx.Client(
-            base_url=f"{base_url.rstrip('/')}/wp-json/wc/v3",
+            base_url=f"{self.base_url}/wp-json/wc/v3",
             auth=(consumer_key, consumer_secret),
             timeout=timeout,
             transport=transport,
         )
-        self.sleep = sleep
+        self.sleep = sleep if sleep is not None else tenacity_sleep
         self.last_attempts = 0
 
     def request(self, method: str, path: str, **kwargs: Any) -> Any:

@@ -16,13 +16,29 @@ from src.database import get_db
 from src.models.sync import SyncRecord
 from src.services.pim_service import NotFoundError
 from src.services.woocommerce_client import WooCommerceClient
-from src.services.woocommerce_sync import WebhookSignatureError, WooCommerceSyncService
+from src.services.woocommerce_sync import (
+    WebhookSignatureError,
+    WooCommerceNotConfigured,
+    WooCommerceSyncService,
+)
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
 
 def get_sync_service(session: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> Generator[WooCommerceSyncService, None, None]:
     """Build a request scoped WooCommerce sync service."""
+    base_url = settings.woo_base_url.strip().rstrip("/")
+    hostname = base_url.split("://", 1)[-1].split("/", 1)[0].lower()
+    placeholder_url = hostname in {"your-store.example.com", "example.com", "www.example.com"}
+    def is_placeholder(value: str) -> bool:
+        normalized = value.strip().lower()
+        return normalized in {"consumer_key", "consumer_secret"} or normalized.startswith("your-") or "placeholder" in normalized
+
+    placeholder_credentials = any(is_placeholder(value) for value in (settings.woo_consumer_key, settings.woo_consumer_secret))
+    if not base_url or not settings.woo_consumer_key.strip() or not settings.woo_consumer_secret.strip() or placeholder_url or placeholder_credentials:
+        raise WooCommerceNotConfigured(
+            "WooCommerce is not configured. Set WOO_BASE_URL, WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET in .env"
+        )
     client = WooCommerceClient(settings.woo_base_url, settings.woo_consumer_key, settings.woo_consumer_secret)
     try:
         yield WooCommerceSyncService(session, client, settings.woo_webhook_secret)

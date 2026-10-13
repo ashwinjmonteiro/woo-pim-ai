@@ -17,3 +17,5 @@ def test_static_ui_assets_are_served(client):
     assert "badge-success" in stylesheet.text
     assert script.status_code == 200
     assert 'fetch(' in script.text
+    assert "payload?.error?.message" in script.text
+    assert "toast(error.message)" in script.text

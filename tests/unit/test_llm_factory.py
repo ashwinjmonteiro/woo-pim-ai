@@ -9,20 +9,20 @@ from src.llm.openai_compatible import OpenAICompatibleClient
 
 
 def test_factory_selects_mock_by_default():
-    assert isinstance(get_llm_client(Settings()), MockLLMClient)
+    assert isinstance(get_llm_client(Settings(_env_file=None)), MockLLMClient)
 
 
 def test_factory_selects_groq_and_requires_key():
-    config = Settings(llm_provider="groq", groq_api_key="free-tier-key")
+    config = Settings(_env_file=None, llm_provider="groq", groq_api_key="free-tier-key")
     assert isinstance(get_llm_client(config), OpenAICompatibleClient)
     with pytest.raises(ValueError, match="GROQ_API_KEY"):
-        get_llm_client(Settings(llm_provider="groq"))
+        get_llm_client(Settings(_env_file=None, llm_provider="groq"))
 
 
 def test_factory_selects_ollama_and_rejects_unknown_provider():
-    assert isinstance(get_llm_client(Settings(llm_provider="ollama")), OpenAICompatibleClient)
+    assert isinstance(get_llm_client(Settings(_env_file=None, llm_provider="ollama")), OpenAICompatibleClient)
     with pytest.raises(ValueError, match="Unsupported"):
-        get_llm_client(Settings(llm_provider="other"))
+        get_llm_client(Settings(_env_file=None, llm_provider="other"))
 
 
 @pytest.mark.live
