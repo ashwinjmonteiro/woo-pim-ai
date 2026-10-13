@@ -15,6 +15,7 @@ from starlette.staticfiles import StaticFiles
 from src import models  # noqa: F401
 from src.api import ai, attributes, products, sync
 from src.database import Base, engine
+from src.integrations.fake_woo import FakeWooStore
 from src.services.pim_service import ConflictError, NotFoundError, PimError
 
 logger = logging.getLogger("pim.api")
@@ -26,6 +27,7 @@ def create_app(create_tables: bool = True) -> FastAPI:
     if create_tables:
         Base.metadata.create_all(bind=engine)
     app = FastAPI(title="Woo PIM AI", version="0.1.0")
+    app.state.fake_woo_store = FakeWooStore()
     app.include_router(products.router)
     app.include_router(attributes.router)
     app.include_router(ai.router)

@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     woo_consumer_key: str = ""
     woo_consumer_secret: str = ""
     woo_webhook_secret: str = ""
+    woo_mode: str = "mock"
+    woo_mock_fail_first: int = 0
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

@@ -63,6 +63,19 @@ function setActiveTab(name) {
 
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => setActiveTab(tab.dataset.tab)));
 
+async function loadWooMode() {
+  try {
+    const data = await api("/sync/mode");
+    byId("woo-mode-badge").textContent = data.label;
+    byId("simulate-webhook").hidden = data.mode !== "mock";
+  } catch (error) {
+    byId("woo-mode-badge").textContent = "WooCommerce mode unavailable";
+    toast(error.message);
+  }
+}
+
+loadWooMode();
+
 function latestSyncByProduct(records) {
   const latest = new Map();
   for (const record of records) {
@@ -75,7 +88,10 @@ async function loadProducts() {
   const body = byId("products-body");
   body.innerHTML = '<tr><td colspan="7" class="empty-cell">Loading your catalog…</td></tr>';
   try {
-    const [products, records] = await Promise.all([api("/products?limit=100"), api("/sync/status")]);
+    // The product list must still render if sync history is temporarily unavailable.
+    const products = await api("/products?limit=100");
+    let records = [];
+    try { records = await api("/sync/status"); } catch { /* Sync status is supplementary. */ }
     const latest = latestSyncByProduct(records);
     byId("product-count").textContent = String(products.length);
     byId("product-summary").textContent = products.length ? `${products.length} product${products.length === 1 ? "" : "s"}` : "Your catalog is ready for its first product";
@@ -182,8 +198,14 @@ byId("enrich-form").addEventListener("submit", async (event) => {
     const persist = byId("persist-enrichment").checked;
     const data = await api(`/ai/enrich?persist=${persist}`, { method: "POST", body: JSON.stringify({ title }) });
     renderEnrichment(data);
-    toast(data.status === "complete" ? "Product enrichment is complete." : "Enrichment finished with some fields missing.", data.status === "complete" ? "success" : "error");
-    if (data.persisted) await loadProducts();
+    if (persist && data.persisted) {
+      toast(`Enrichment saved to Products as ${data.persisted.sku}.`, "success");
+      await loadProducts();
+    } else if (persist) {
+      toast(data.error || "Enrichment could not be saved. Please try again.");
+    } else {
+      toast(data.status === "complete" ? "Product enrichment is complete." : "Enrichment finished with some fields missing.", data.status === "complete" ? "success" : "error");
+    }
   } catch (error) {
     toast(error.message);
   } finally {
@@ -215,6 +237,19 @@ async function loadSync() {
 }
 
 byId("refresh-sync").addEventListener("click", loadSync);
+byId("simulate-webhook").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const result = await api("/sync/webhook/simulate", { method: "POST" });
+    toast(result.status === "processed" ? "Mock product webhook processed." : "Mock webhook was not processed.", result.status === "processed" ? "success" : "error");
+    await Promise.all([loadProducts(), loadSync()]);
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
 byId("push-all").addEventListener("click", async (event) => {
   const button = event.currentTarget;
   button.disabled = true;

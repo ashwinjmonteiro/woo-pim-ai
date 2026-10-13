@@ -37,6 +37,7 @@ def client(session_factory):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_settings] = lambda: Settings(
+        woo_mode="live",
         woo_base_url="https://woo.test",
         woo_consumer_key="test-key",
         woo_consumer_secret="test-secret",

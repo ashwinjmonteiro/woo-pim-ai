@@ -26,7 +26,9 @@ flowchart LR
     Factory --> Compatible[OpenAI-compatible client]
     Compatible --> Groq[Groq free tier]
     Compatible --> Ollama[Local Ollama]
-    Service --> Woo[WooCommerce REST API]
+    Service --> WooFactory[WooCommerce client factory]
+    WooFactory --> FakeWoo[In-memory mock WooCommerce]
+    WooFactory --> Woo[Live WooCommerce REST API]
 ```
 
 ### Enrich, validate, and push
@@ -97,7 +99,7 @@ Start the server with `uvicorn src.main:app --reload`, then open <http://127.0.0
 - **AI Enrich:** enter a title, optionally choose “Save product to catalog,” and run the enrichment agent. Review the description, tags, extracted attributes, category, completion badge, and step-by-step tool trace.
 - **Sync:** push all catalog products, pull from WooCommerce, and inspect recent records with direction, status, retry attempts, errors, and time.
 
-The UI displays API error messages in a toast and does not expose server stack traces. WooCommerce actions require credentials in `.env`; AI enrichment works immediately with the default mock provider.
+The UI displays API error messages in a toast and does not expose server stack traces. WooCommerce defaults to a built-in mock store, so push, pull, retries, and webhook demos work without a store account. AI enrichment works immediately with the default mock provider.
 
 `make install`, `make run`, `make test`, and `make lint` are also available where Make is installed.
 
@@ -117,6 +119,8 @@ The UI displays API error messages in a toast and does not expose server stack t
 | `WOO_CONSUMER_KEY` | empty | WooCommerce REST API consumer key |
 | `WOO_CONSUMER_SECRET` | empty | WooCommerce REST API consumer secret |
 | `WOO_WEBHOOK_SECRET` | empty | Secret configured for WooCommerce webhook signing |
+| `WOO_MODE` | `mock` | `mock` uses a seeded local fake store; `live` connects to WooCommerce |
+| `WOO_MOCK_FAIL_FIRST` | `0` | In mock mode, return temporary 503 responses for the first N requests to demonstrate retries |
 
 Only `.env.example` belongs in version control. Keep real credentials in your local `.env`.
 
@@ -124,9 +128,13 @@ Only `.env.example` belongs in version control. Keep real credentials in your lo
 
 For Groq, create a free key from [console.groq.com](https://console.groq.com/), put it in `GROQ_API_KEY`, and set `LLM_PROVIDER=groq`. The model name can be changed with `GROQ_MODEL` without editing Python code. For local inference, install and start [Ollama](https://ollama.com/), download a tool-capable model, set `LLM_PROVIDER=ollama`, and configure `OLLAMA_MODEL` if needed. The default `mock` mode needs neither service.
 
-### Optional WooCommerce connection
+### Mock vs Live WooCommerce
 
-In WooCommerce, create REST API credentials with the required product read/write permissions, then set `WOO_BASE_URL`, `WOO_CONSUMER_KEY`, `WOO_CONSUMER_SECRET`, and `WOO_WEBHOOK_SECRET`. For local experiments, a LocalWP WooCommerce site can be used if its URL is reachable by the Python process. Webhook deliveries must reach the API URL and use the same webhook secret. The test suite always uses `respx`; it never calls a live store.
+The default `WOO_MODE=mock` runs the production WooCommerce HTTP client against an in-memory fake store seeded with three products. Use **Push**, **Pull from WooCommerce**, or **Simulate webhook** in the Sync tab to demonstrate the full workflow without network access or credentials. Set `WOO_MOCK_FAIL_FIRST=2` to make the first two requests fail temporarily; the client retries and the sync record shows the attempt count.
+
+For a real store, set `WOO_MODE=live` and provide `WOO_BASE_URL`, `WOO_CONSUMER_KEY`, `WOO_CONSUMER_SECRET`, and (for webhooks) `WOO_WEBHOOK_SECRET`. Live mode reports a clear configuration error if these values are missing or still placeholders. The mode badge in the UI shows which store is active.
+
+In WooCommerce, create REST API credentials with the required product read/write permissions. For local experiments, a LocalWP WooCommerce site can be used if its URL is reachable by the Python process. Webhook deliveries must reach the API URL and use the same webhook secret. Live-mode integration tests use `respx`; mock-mode tests use the in-memory HTTP transport.
 
 ## REST API reference
 
@@ -149,7 +157,9 @@ In WooCommerce, create REST API credentials with the required product read/write
 | `POST` | `/sync/pull` | Pull and upsert WooCommerce products |
 | `GET` | `/sync/status` | List sync attempt records |
 | `GET` | `/sync/status/{product_id}` | List attempts for one product |
+| `GET` | `/sync/mode` | Report whether mock or live WooCommerce is active |
 | `POST` | `/sync/webhook/woocommerce` | Receive a signed WooCommerce webhook |
+| `POST` | `/sync/webhook/simulate` | Send a signed product update through the local webhook handler (mock mode only) |
 
 ### Example requests and responses
 

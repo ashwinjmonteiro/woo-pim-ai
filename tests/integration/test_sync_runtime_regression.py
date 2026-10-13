@@ -4,11 +4,12 @@ from src.config import Settings, get_settings
 from src.services.woocommerce_client import WooCommerceClient
 from src.services.woocommerce_sync import WooCommerceSyncService
 
-CONFIG_ERROR = "WooCommerce is not configured. Set WOO_BASE_URL, WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET in .env"
+CONFIG_ERROR = "WooCommerce is not configured. Set WOO_MODE=mock or fill in WOO_BASE_URL, WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET."
 
 
 def test_push_rejects_missing_woocommerce_configuration(client):
     client.app.dependency_overrides[get_settings] = lambda: Settings(
+        woo_mode="live",
         woo_base_url="https://your-store.example.com",
         woo_consumer_key="",
         woo_consumer_secret="",
@@ -20,6 +21,7 @@ def test_push_rejects_missing_woocommerce_configuration(client):
 
 def test_pull_rejects_placeholder_woocommerce_url(client):
     client.app.dependency_overrides[get_settings] = lambda: Settings(
+        woo_mode="live",
         woo_base_url="https://your-store.example.com",
         woo_consumer_key="consumer-key",
         woo_consumer_secret="consumer-secret",
